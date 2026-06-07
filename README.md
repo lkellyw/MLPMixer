@@ -1,0 +1,345 @@
+# hls4snn FPGA Resource Estimation Flow
+
+This guide describes how to set up **hls4snn**, run SNN-to-HLS conversion, synthesize the generated design using **Vitis HLS**, and obtain FPGA resource utilization estimates (FF, LUT, DSP, BRAM, URAM).
+
+---
+
+## 1. Clone the repository
+
+```bash
+git clone https://github.com/bmdillon/hls4snn.git
+cd hls4snn
+```
+
+---
+
+## 2. Create a Python virtual environment
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+---
+
+## 3. Install Python dependencies
+
+Upgrade pip:
+
+```bash
+python -m pip install --upgrade pip setuptools wheel
+```
+
+Install required packages:
+
+```bash
+python -m pip install \
+numpy \
+scipy \
+pandas \
+matplotlib \
+pyyaml \
+jupyter \
+notebook \
+ipykernel \
+torch \
+torchvision \
+torchaudio \
+snntorch
+```
+
+Install hls4snn:
+
+```bash
+python -m pip install -e .
+```
+
+---
+
+## 4. Register the environment as a Jupyter kernel
+
+```bash
+python -m ipykernel install \
+    --user \
+    --name=hls4snn \
+    --display-name "Python (hls4snn)"
+```
+
+---
+
+## 5. Source the Xilinx tools
+
+Before launching Jupyter:
+
+```bash
+source /tools/Xilinx/Vitis/2023.2/settings64.sh
+source /tools/Xilinx/Vivado/2023.2/settings64.sh
+```
+
+Verify the installation:
+
+```bash
+which vitis_hls
+which vivado
+which vitis-run
+```
+
+Expected output:
+
+```text
+/tools/Xilinx/Vitis_HLS/2023.2/bin/vitis_hls
+/tools/Xilinx/Vivado/2023.2/bin/vivado
+/tools/Xilinx/Vitis/2023.2/bin/vitis-run
+```
+
+---
+
+## 6. Launch Jupyter
+
+```bash
+jupyter notebook
+```
+
+or
+
+```bash
+jupyter lab
+```
+
+Open:
+
+```text
+examples/snn_example/hls4ml-snn-example.ipynb
+```
+
+Select the kernel:
+
+```text
+Python (hls4snn)
+```
+
+---
+
+## 7. Configure Xilinx paths inside the notebook
+
+If the notebook kernel does not inherit the shell environment:
+
+```python
+import os
+
+os.environ["PATH"] = (
+    "/tools/Xilinx/Vitis_HLS/2023.2/bin:"
+    "/tools/Xilinx/Vitis/2023.2/bin:"
+    "/tools/Xilinx/Vivado/2023.2/bin:"
+    + os.environ["PATH"]
+)
+
+os.environ["XILINX_VITIS"] = "/tools/Xilinx/Vitis/2023.2"
+os.environ["XILINX_HLS"] = "/tools/Xilinx/Vitis_HLS/2023.2"
+os.environ["XILINX_VIVADO"] = "/tools/Xilinx/Vivado/2023.2"
+```
+
+Verify:
+
+```python
+!which vitis_hls
+!which vivado
+!which vitis-run
+```
+
+Expected output:
+
+```text
+/tools/Xilinx/Vitis_HLS/2023.2/bin/vitis_hls
+/tools/Xilinx/Vivado/2023.2/bin/vivado
+/tools/Xilinx/Vitis/2023.2/bin/vitis-run
+```
+
+---
+
+## 8. Convert a trained PyTorch SNN model
+
+Load a trained checkpoint:
+
+```python
+state = torch.load(checkpoint_path, map_location="cpu")
+model.load_state_dict(state)
+model.eval()
+```
+
+Convert to hls4ml:
+
+```python
+hls_model = hls4ml.converters.convert_from_pytorch_model(
+    model,
+    output_dir="my_snn_project",
+    project_name="my_snn",
+    backend="Vitis",
+    io_type="io_stream",
+    hls_config=hls_config,
+    part="xczu7ev-ffvc1156-2-e",
+    clock_period=5,
+)
+```
+
+Generate the HLS project:
+
+```python
+hls_model.write()
+```
+
+---
+
+## 9. Run synthesis
+
+Build the generated design:
+
+```python
+report = hls_model.build(
+    reset=True,
+    csim=False,
+    synth=True,
+    cosim=False,
+    validation=False,
+    export=False,
+    vsynth=True,
+    log_to_stdout=True,
+)
+```
+
+This launches Vitis HLS and synthesizes the generated design.
+
+---
+
+# FPGA Resource Estimation
+
+The primary objective is obtaining FPGA resource estimates:
+
+- FF (Flip-Flops)
+- LUT (Lookup Tables)
+- DSP
+- BRAM
+- URAM
+- Latency
+- Initiation Interval (II)
+
+---
+
+## Monitor synthesis progress
+
+In another terminal:
+
+```bash
+top
+```
+
+or
+
+```bash
+ps -ef | grep vitis_hls
+```
+
+Typical output while synthesis is running:
+
+```text
+vitis_hls    100% CPU
+clang         100% CPU
+```
+
+This is normal.
+
+Large SNN models may require tens of minutes or several hours to synthesize.
+
+---
+
+## Locate the synthesis report
+
+Find the generated report:
+
+```bash
+find . -name csynth.rpt
+```
+
+Typical path:
+
+```text
+examples/my_snn_resource/my_snn/my_snn_prj/solution1/syn/report/csynth.rpt
+```
+
+Open the report:
+
+```bash
+less examples/my_snn_resource/my_snn/my_snn_prj/solution1/syn/report/csynth.rpt
+```
+
+---
+
+## Extract FPGA resource usage
+
+Locate the section:
+
+```text
+Performance & Resource Estimates
+```
+
+Example:
+
+```text
++---------------------------------------------------------------------------+
+| Modules & Loops | FF | LUT | DSP | BRAM | URAM |
++---------------------------------------------------------------------------+
+|+ my_snn*        |575 |2264 |  0  |  0   |  0   |
++---------------------------------------------------------------------------+
+```
+
+The first row corresponds to the total synthesized design.
+
+Example interpretation:
+
+| Resource | Usage |
+|-----------|--------|
+| FF | 575 |
+| LUT | 2264 |
+| DSP | 0 |
+| BRAM | 0 |
+| URAM | 0 |
+
+Latency and Initiation Interval (II) are reported in the same section.
+
+---
+
+## Resource breakdown by layer
+
+The report also contains per-layer resource utilization:
+
+```text
+| lif1          | FF 82  | LUT 858 |
+| conv1         | FF 68  | LUT 476 |
+| fc_out_conv   | FF 43  | LUT 170 |
+```
+
+This allows identification of the most expensive layers.
+
+---
+
+## Expected synthesis time
+
+Approximate synthesis times:
+
+| Model Size | Typical Runtime |
+|------------|------------------|
+| Small SNN example | 1–5 min |
+| Medium Conv1D SNN | 5–30 min |
+| Large Conv1D + LIF network | 30–120+ min |
+| Long sequence (SEQ_LEN=3000) | Several hours possible |
+
+---
+
+## Notes
+
+- High CPU usage from `vitis_hls` and `clang` is expected.
+- Vitis HLS uses CPU and RAM only; GPUs are not used.
+- Resource estimation does not require RTL simulation (`csim=False`, `cosim=False`).
+- Large sequence lengths (e.g. 3000 timesteps) can significantly increase synthesis time.
+- If synthesis becomes impractical, start with shorter sequences (128, 256, or 512) and scale upward.
+- The generated HLS project automatically includes the trained PyTorch weights loaded from the checkpoint; no manual weight export is required.
