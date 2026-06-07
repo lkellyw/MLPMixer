@@ -347,7 +347,7 @@ Approximate synthesis times:
 
 ## Notes on Earlier FC Replacement Attempts
 
-The notebooks were earlier attempts to replace the fully connected (FC) layer from the original hls4snn example with our own model structure:
+The notebooks were earlier failed attempts to replace the fully connected (FC) layer from the original hls4snn example with our conv1d structure:
 
 ```text
 hls4ml-snn-example-base-Copy1 (1).ipynb
