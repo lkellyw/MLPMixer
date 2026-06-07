@@ -343,3 +343,12 @@ Approximate synthesis times:
 - Large sequence lengths (e.g. 3000 timesteps) can significantly increase synthesis time.
 - If synthesis becomes impractical, start with shorter sequences (128, 256, or 512) and scale upward.
 - The generated HLS project automatically includes the trained PyTorch weights loaded from the checkpoint; no manual weight export is required.
+
+
+## Notes on Earlier FC Replacement Attempts
+
+The notebooks:
+
+```text
+hls4ml-snn-example-base-Copy1 (1).ipynb
+hls4ml-snn-example.ipynb
