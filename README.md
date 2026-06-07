@@ -352,3 +352,102 @@ The notebooks were earlier failed attempts to replace the fully connected (FC) l
 ```text
 hls4ml-snn-example-base-Copy1 (1).ipynb
 hls4ml-snn-example.ipynb
+
+# Notebook Descriptions
+
+## jetconstituteCode.ipynb
+
+This notebook contains the main jet constituent classification experiments using several different neural network architectures:
+
+### Models Evaluated
+
+- hls4ml CNN
+- ConvSNN
+- ConvSNN with 2 convolutional layers (feature extraction version)
+- Simple MLP-Mixer
+
+### Purpose
+
+The notebook compares conventional CNN-based approaches with spiking neural network (SNN) architectures and MLP-Mixer models on the jet constituent classification task.
+
+### Results Included
+
+- Training and validation performance
+- Classification accuracy
+- Model comparisons between CNN, ConvSNN, ConvSNN (2-conv feature extractor), and MLP-Mixer architectures
+
+---
+
+## MLPMixer_RELUcode.ipynb
+
+This notebook evaluates a conventional MLP-Mixer architecture using ReLU activations.
+
+### Hidden Dimensions Evaluated
+
+- Hidden Dimension = 16
+- Hidden Dimension = 64
+
+### Purpose
+
+This notebook serves as the non-spiking baseline for comparison against the spiking MLP-Mixer implementations.
+
+### Important Note
+
+Since ReLU networks do not use temporal spike accumulation, changing the number of timesteps does not affect the model output.
+
+As a result, performance versus timestep appears as a flat line.
+
+In other words:
+
+```text
+Timestep changes only affect spike counting in SNN models.
+For ReLU models, timestep has no effect on inference results.
+```
+
+---
+
+
+## MLPMixerCode.ipynb
+
+This notebook contains the Spiking Neural Network (SNN) version of the MLP-Mixer architecture using Leaky Integrate-and-Fire (LIF) neurons.
+
+### Hidden Dimensions Evaluated
+
+- Hidden Dimension = 16
+- Hidden Dimension = 64
+- Hidden Dimension = 128
+- Hidden Dimension = 256
+
+### Experiments Included
+
+#### 1. Hidden Dimension Comparison
+
+Performance comparison across different hidden dimensions.
+
+#### 2. Timestep Analysis
+
+Investigation of the effect of timestep count on model performance.
+
+The following metrics are evaluated as a function of timestep:
+
+- Accuracy
+- ROC Curve
+- AUC (Area Under Curve)
+
+#### 3. ROC and AUC Evaluation
+
+ROC curves and AUC scores are generated for different timestep settings to identify the optimal temporal integration window.
+
+### Key Finding
+
+Among the timestep values evaluated, a timestep of:
+
+```text
+T = 20
+```
+
+provided the best overall performance and was selected as the final configuration for subsequent experiments.
+
+### Purpose
+
+This notebook investigates how temporal spike accumulation influences classification performance in SNN-based MLP-Mixer models and determines the optimal timestep configuration.
